@@ -88,6 +88,7 @@ function jpk_setup_pkg() {
     fi
 
     mkdir -p "$SRC_DIR"
+    chmod 777 "$SRC_DIR"
     mkdir -p "$DST_DIR_ROOT"
     mkdir -p "$DST_DIR_SCRIPTS"
 
@@ -100,9 +101,10 @@ function jpk_setup_pkg() {
 # JPK Info file
 #
 
-Name: $JPK_PKG_NAME
-Version: $JPK_PKG_VER
+Name: $PKG_NAME
+Version: $PKG_VERSION
 Machine: $(uname -m)
+Disk Size: 
 Maintainer: $JPK_PKG_MAINTAINER
 
 Description: 
@@ -152,6 +154,8 @@ function jpk_pack_pkg() {
   local TMP_DATE
   local TMP_DATE_N
   local JPK_FILE
+  local DISK_SIZE
+  local REPO_DIR
 
   if [ -z "$JPK_PKG_DST" ] ; then
     echo "Error: pkg not setup/installed"
@@ -173,11 +177,16 @@ function jpk_pack_pkg() {
 
   ( cd "$ROOT_DIR" ; tar cf "${TMP_DIR}/pkg.tar" * ) 
 
+  REPO_DIR="$(jpk_get_base_dir)/repo"
+  mkdir -p "$REPO_DIR"
+
   TMP_DATE_N=$(date)
   TMP_DATE=$(date +"%Y%m%d%H%M%S" --date="$TMP_DATE_N")
-  JPK_FILE="${JPK_PKG_DST}/${TMP_DATE}__${JPK_PKG_NAME}.${JPK_PKG_VER}.$(uname -m).jpk"
+  JPK_FILE="${REPO_DIR}/${JPK_PKG_NAME}.${JPK_PKG_VER}.$(uname -m)__${TMP_DATE}.jpk"
+  DISK_SIZE=$(du -s "$ROOT_DIR" |cut -f1)
 
   sed -i "s/Pack Date:.*/Pack Date: ${TMP_DATE_N}/" "${TMP_DIR}/jpk/jpk.info"
+  sed -i "s/Disk Size:.*/Disk Size: ${DISK_SIZE}/" "${TMP_DIR}/jpk/jpk.info"
 
   echo "Creating jpk file '$JPK_FILE'"
   

@@ -75,7 +75,8 @@ if [ "$mode" = "db" ] ; then
 ! -wholename \"/proc/*\" \
 ! -wholename \"/sys/*\" \
 ! -wholename \"/lost+found/*\" \
-! -wholename \"/tmp/*\""
+! -wholename \"/tmp/*\" \
+! -wholename \"/pkg/*\""
 
   for f in $(eval $FIND_STR $FIND_ARGS 2>/dev/null | sort ); do
     s=$( stat -c '%a:%u:%g:%Y:%F:%n' "$f" 2>/dev/null  )
