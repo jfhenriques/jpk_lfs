@@ -1,0 +1,117 @@
+#!/bin/bash
+
+out_file=/dev/null
+out_file2=''
+mode=''
+remove_second=false
+
+[ -z "$FIND_ARGS" ] && FIND_ARGS=''
+[ -z "$VERBOSE" ] && VERBOSE=false
+
+function check_exists() {
+  if [ ! -f "$1" ]; then
+    echo "ERROR: file '$1' doesn't exist"
+    exit 1
+#  else
+#   echo "file '$1' exists"
+  fi
+}
+
+function do_cleanup() {
+  if [ "$remove_second" = true ] && [ ! -z "$out_file2" ] && [ -f "$out_file2" ]; then
+    [ "$VERBOSE" = true ] && echo "Cleaning up '$out_file2'"
+    rm -f "$out_file2"
+  fi
+  remove_second=false
+  unset IGNORE_EXIST_CHECK
+}
+
+function do_cleanup_signal() {
+  echo "Received kill signal"
+  VERBOSE=true do_cleanup
+  exit 1
+}
+
+trap do_cleanup_signal SIGHUP SIGINT SIGTERM
+
+
+if [ "$1" = "db" ] && [ ! -z "$2" ]; then
+  if [ -f "$2" ] && [ -z "$IGNORE_EXIST_CHECK" ] ; then
+    echo "ERROR: File '$2' already exists"
+    exit 1
+  fi
+
+  out_file=$2
+
+  if [ -d "$out_file" ]; then
+    echo "ERROR: '$out_file' is a directory"
+    exit 1
+  fi
+
+  mode=db
+elif [ "$1" = "cmp" ] && [ ! -z "$2" ] ; then
+  check_exists "$2"
+  out_file=$2
+
+  if [ ! -z "$3" ]; then
+    check_exists "$3"
+    out_file2=$3
+  fi
+
+  mode=cmp
+fi
+
+
+
+
+if [ "$mode" = "db" ] ; then
+
+  [ -z "$START_ROOT" ] && START_ROOT=/
+
+  FIND_STR="find $(readlink -f "$START_ROOT") \
+! -wholename \"/dev/*\" \
+! -wholename \"/run/*\" \
+! -wholename \"/sources/*\" \
+! -wholename \"/proc/*\" \
+! -wholename \"/sys/*\" \
+! -wholename \"/lost+found/*\" \
+! -wholename \"/tmp/*\""
+
+  for f in $(eval $FIND_STR $FIND_ARGS 2>/dev/null | sort ); do
+    s=$( stat -c '%a:%u:%g:%Y:%F:%n' "$f" 2>/dev/null  )
+
+    if [ "$?" -eq "0" ]; then
+  
+      echo "$s" >> "$out_file"
+    fi
+
+  done
+
+elif [ "$mode" = "cmp" ] ; then
+
+  if [ -z "$out_file2" ]; then
+    remove_second=true
+    out_file2=$(mktemp /tmp/db_snap.XXXXXXXXXXX)
+    [ "$VERBOSE" = true ] && echo "Writing current snapshot to temporary file '$out_file2'"
+    eval "IGNORE_EXIST_CHECK=1 $0 db '$out_file2'"
+
+    if [ "$?" -ne "0" ]; then
+      echo "ERROR: Something went wrong"
+      do_cleanup
+      exit 1
+    fi
+  fi
+
+  eval "diff --suppress-common-lines '$out_file' '$out_file2'"
+
+  do_cleanup
+ 
+else 
+  echo "For dumping snapshot of filesystem use '$0 db DB_FILE'"
+  echo "For comparing filesystem snapshot use '$0 cmp DB_FILE1 [DB_FILE2]'"
+  echo "Extra variables START_ROOT / FIND_ARGS / VERBOSE"
+
+  exit 1
+fi
+
+

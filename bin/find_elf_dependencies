@@ -1,0 +1,22 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+  echo "ERROR: use '$0 DIR'"
+  exit 1
+fi
+
+if [ ! -d "$1" ]; then
+  echo "ERROR: '$1' doest not exists"
+  exit 1
+fi
+
+TMP_FILE=$(mktemp /tmp/elf_db.XXXXXXXXXXX)
+
+for f in $( find "$1" -type f -exec file {} \; 2>/dev/null | grep -i " elf " | cut -d: -f1 ); do
+  readelf -d "$f" 2>/dev/null | grep 'NEEDED'|cut -d'[' -f2|cut -d']' -f1 >> "$TMP_FILE"
+done
+
+cat "$TMP_FILE" |sort|uniq
+
+rm -f "$TMP_FILE"
+
