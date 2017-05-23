@@ -1,0 +1,170 @@
+#!/bin/bash
+
+
+# globals
+
+TMP_LOCATION=''
+TMP_LOCATION_TEMPLATE="/tmp/.jpk.tmp.XXXXXXXXXX"
+[ -z "$VERBOSE" ] && VERBOSE=0
+PKG_INFO_FILE=''
+PKG_NAME=''
+PKG_VERSION=''
+PKG_CHECKSUM=''
+PKG_RAW_LOCATION=''
+
+
+trap jpk_do_cleanup_signal SIGHUP SIGINT SIGTERM
+
+#
+# cleanup functions
+#
+
+jpk_do_cleanup() {
+  if [ ! -z "$TMP_LOCATION" ] && [ -d "$TMP_LOCATION" ]; then
+    [ "$VERBOSE" != "0" ] && echo "Cleaning up temporary location '$TMP_LOCATION'"
+    sleep "0.1"
+    rm -rf "$TMP_LOCATION"
+  fi
+}
+
+jpk_do_cleanup_signal() {
+  jpk_do_cleanup
+  exit 1
+}
+
+
+
+#
+# Helper functions
+#
+
+jpk_read_variable_from_file() {
+
+  local I_FILE
+  [ -z "$2" ] && I_FILE=$PKG_INFO_FILE || I_FILE=$2
+
+  if [ -z "$1" ] || [ -z "$I_FILE" ] || [ ! -f "$I_FILE" ]; then
+    return 1
+  fi
+
+  echo $(sed -ne "s/ *\\$1 *: *\(.*\) */\1/p" "$I_FILE")
+  return 0
+}
+
+jpk_ensure_root() {
+  if [[ $EUID -ne 0 ]]; then
+     echo "This script must be run as root" 1>&2
+     jpk_do_cleanup
+     exit 1
+  fi
+}
+
+
+
+
+
+jpk_sanity_check_pkg() {
+
+  if [ -z "$PKG_INFO_FILE" ]; then
+
+    if [ ! -s "$1" ]; then
+      echo -n "'$1' doest not exist or is empty."
+      return 1
+    fi
+
+    TMP_LOCATION=$(mktemp -d "$TMP_LOCATION_TEMPLATE")
+    local PKG_RAW_LOCATION_T=$(readlink -f "$1")
+
+    ( cd "$TMP_LOCATION" ; tar xf "$PKG_RAW_LOCATION_T" "jpk" >/dev/null 2>&1 )
+
+    local PKG_INFO_FILE_T="${TMP_LOCATION}/jpk/jpk.info"
+
+    if [ ! -f "$PKG_INFO_FILE_T" ]; then
+      echo -n "Package format not recognized."
+      return 1
+    fi
+
+    PKG_INFO_FILE=$PKG_INFO_FILE_T
+    PKG_RAW_LOCATION=$PKG_RAW_LOCATION_T
+
+    PKG_NAME=$(jpk_read_variable_from_file "Name" )
+    PKG_VERSION=$(jpk_read_variable_from_file "Version" )
+    PKG_CHECKSUM=$(jpk_read_variable_from_file "Checksum" )
+  fi
+
+  return 0
+}
+
+
+
+
+#
+# JPK mode functions
+#
+
+jpk_sys_install_pkg() {
+
+  if [ -z "$2" ]; then
+    echo -n "Package name not provided, please use '$0 $1 PKG.JPK'."
+    return 1
+  fi
+
+  jpk_sanity_check_pkg "$2"
+
+  if [ "$?" -ne 0 ]; then
+    return 1
+  fi
+
+  echo "Installing package '$PKG_NAME' version '$PKG_VERSION'"
+
+  if [ -z "$PKG_CHECKSUM" ]; then
+    echo "[WARN] Package doest not have a checksum" >&2
+  else
+    local PKG_CHECKSUM_V=$( tar xOf "$PKG_RAW_LOCATION" "pkg.tar" 2>/dev/null |sha1sum 2>/dev/null |cut -d' ' -f1)
+    if [ "$PKG_CHECKSUM_V" != "$PKG_CHECKSUM" ]; then
+      echo -n "[ERROR] Checksum is not valid."
+      return 1
+    fi
+  fi
+
+  local TAR_ARGS
+  [ "$VERBOSE" != "0" ] && TAR_ARGS="-v"
+  ( cd / ; tar xOf "$PKG_RAW_LOCATION" "pkg.tar" | tar $TAR_ARGS -xf - )
+
+  if [ "$?" != "0" ]; then
+    echo -n "Something went wrong."
+    return $?
+  fi
+
+  return 0
+}
+
+cmd=$1
+retval=1
+
+
+
+case "$cmd" in 
+  
+  i|inst|install)
+
+      jpk_ensure_root
+      jpk_sys_install_pkg $@
+
+      if [ "$?" != "0" ]; then
+        echo " Aborting..."
+      else
+        echo "Package installed"
+    	retval=0
+      fi
+      ;;
+
+  *)
+      echo "Mode '$1' not recognized"
+      ;;
+esac
+
+jpk_do_cleanup
+
+exit $retval
+

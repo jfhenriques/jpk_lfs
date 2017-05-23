@@ -1,0 +1,121 @@
+
+############################################################################################
+#
+#    JPK package distribution tool
+#
+############################################################################################
+
+
+1. Intro
+--------
+
+  Educational attempt on building a linux package distribution system, for LFS based OS
+
+  
+
+2. JPK File structure
+---------------------
+
+  JPK file structure is tar file compressed with xz and organized as follows:
+
+  File.Version.jpk
+  - pkg.tar               (uncompressed tar file, containing the files to be distributed)
+  - jpk
+     - jpk.info           (file with information related to the package)
+     - index.tgz          (output of 'tar tvf pkt.tar' compressed with gzip)
+
+
+ 
+3. jpk tool
+-----------
+
+  Insall a package
+  # jpk install package.jpk (installs a jpk package)
+  
+  TODO: Remove a package
+  # jpk remove package.jpk (TODO: removes a jpk package)
+
+  
+
+4. Packaging helper tools
+-------------------------
+
+  Source the file containing the jpk helper functions with
+  # source /pkg/bin/jpk_functions.sh
+
+  
+  Setup a build environment (should be called as root)
+  # jpk_setup_pkg PKG_NAME PKG_VERSION [SRC_TAR_FILE]
+
+  Setup the environment variables to needed for jpk_* functions
+  If SRC_TAR_FILE is provided, the basic needed directory structure is created
+  /pkg/src/PKG_NAME/PKG_VERSION
+  /pkg/dst/PKG_NAME/PKG_VERSION/root
+  /pkg/dst/PKG_NAME/PKG_VERSION/scripts/*
+  and the SRC_TAR_FILE is extracted into dst/.../root
+  SRC_TAR_FILE can be passed as - if untaring the source is not needed
+  
+  
+  Print current package informations
+  # jpk_print_pkg_info
+  
+
+  Variable JPK_BUILD_USER can be set to indicate the user that will build the source
+  If the variable is not set, the current user will be used
+  This function returns the effective owner that will be used to extract the tar files
+  # jpk_get_build_user
+  
+  
+  Change to package source directory
+  # jpk_cd_pkg_src_dir
+  
+  
+  Change to destination directory
+  # jpk_cd_pkg_dst_dir
+  
+  
+  After building the package this function can be used to install the produced code into fakeroot
+  ( http://www.linuxfromscratch.org/hints/downloads/files/fakeroot.txt )
+  # jpk_install_pkg
+  
+  If the package does not support DESTDIR variable in make install, some other approach must be used
+  
+  Here the jpk_snapshot_disk can be useful to take a snapshot of the filesystem before calling jpk_install_pkg and after,
+  and check if some file was modified outside the /pkg tree
+  
+
+  Create the final package and place it in /pkg/repo
+  # jpk_pack_pkg
+  
+  
+  Unset all the env vars set with jpk_setup_pkg
+  # jpk_unset_pkg
+
+  
+
+5. jpk_snapshot_disk tool
+-------------------------
+
+  This tool provides a way to take a snapshot of the filesystem structure,
+  useful to check if files have been changed after performing an operation
+
+  To take a filesystem snapshot use:
+  # jpk_snapshot_disk db /tmp/filesnap1
+
+  START_ROOT variable may be set before the command to specify where to start the lookup,
+  otherwise use / (root)
+
+
+  To compare two snapshots use
+  # jpk_snapshot_disk cmp /tmp/filesnap1 tmp/filesnap2
+
+  The last parameter can be committed, and a temporary snapshot will be taken
+  
+ 
+ 
+6. find_elf_dependencies tool
+-----------------------------
+
+  This tool can be used to check shared lib dependencies of all ELF files inside a directory
+  # find_elf_dependencies DIR
+
