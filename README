@@ -119,3 +119,12 @@
   This tool can be used to check shared lib dependencies of all ELF files inside a directory
   # find_elf_dependencies DIR
 
+
+
+7. TODO
+-------
+
+  - Implement more jpk commands (such as remove)
+  - implement mechanism to check for dependencies
+  - Download files from http://
+  
