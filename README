@@ -25,6 +25,22 @@
      - index.tgz          (output of 'tar tvf pkt.tar' compressed with gzip)
 
 
+
+2.1. jpk.info
+-------------
+
+  - Pre-Script: and Post-Script:
+
+  Pre and Post scripts can be configured to be executed with the Pre-Script: and Post-Script: entries
+  If this entries are set, the script files must exist and be executable,  otherwise the installation will fail.
+  The execution path is always relative to the scripts directory
+
+
+  - Checksum:
+  
+  If present, checksum will be checked before installation
+
+
  
 3. jpk tool
 -----------

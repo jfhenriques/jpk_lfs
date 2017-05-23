@@ -211,27 +211,3 @@ function jpk_pack_pkg() {
 
 
 
-jpk_sys_install_pkg() {
-  local PKG_LOC
-
-  if [[ $EUID -ne 0 ]]; then
-     echo "This script must be run as root" 1>&2
-     return 1
-  fi
-
-  if [ -z "$1" ]; then
-    echo "Package not set, please use 'jpk_sys_install_pkg PKG.JPK'"
-    return 1
-  fi
-
-  PKG_LOC=$1
-
-  if [ ! -s "$PKG_LOC" ]; then
-    echo "'$PKG_LOC' doest not exist or is empty"
-    return 1
-  fi
-
-  ( cd / ; tar xOf "$PKG_LOC" "pkg.tar" | tar xvf - )
-
-}
-
