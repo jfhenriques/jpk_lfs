@@ -140,14 +140,28 @@ EOF
 
 
 function jpk_install_pkg() {
-  if [ -z "$JPK_PKG_DST" ]; then
+  if [ -z "$JPK_PKG_DST" ] || [ ! -d "$JPK_PKG_DST" ]; then
     echo "Error: pkg not setup"
+    return 1
   else
     echo "Installing in '$JPK_PKG_DST'"
     make DESTDIR="${JPK_PKG_DST}/root" install $@
   fi
 }
 
+
+
+function jpk_strip_pkg() {
+  if [ -z "$JPK_PKG_DST" ] || [ ! -d "$JPK_PKG_DST" ]; then
+    echo "Error: pkg not setup"
+    return 1
+  else
+    local ROOT_DIR="${JPK_PKG_DST}/root"
+    local START_SIZE=$(du -s "$ROOT_DIR" | cut -f1)
+    find $ROOT_DIR/{,usr/}{bin,lib,sbin} -type f -exec strip --strip-unneeded {} \; 2>/dev/null
+    echo "Size before $START_SIZE, size after $(du -s "$ROOT_DIR" | cut -f1)"
+  fi
+}
 
 
 function _jpk_append_if_not_exists() {
@@ -159,7 +173,7 @@ function _jpk_append_if_not_exists() {
 
 
 function jpk_pack_pkg() {
-  if [ -z "$JPK_PKG_DST" ] ; then
+  if [ -z "$JPK_PKG_DST" ] || [ ! -d "$JPK_PKG_DST" ]; then
     echo "Error: pkg not setup/installed"
     return 1
   fi

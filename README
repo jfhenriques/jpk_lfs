@@ -98,6 +98,10 @@
   
   Here the jpk_snapshot_disk can be useful to take a snapshot of the filesystem before calling jpk_install_pkg and after,
   and check if some file was modified outside the /pkg tree
+
+
+  Strip unneded symbols from elf files
+  # jpk_strip_pkg
   
 
   Create the final package and place it in /pkg/repo
