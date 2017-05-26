@@ -202,6 +202,8 @@ jpk_sys_install_pkg() {
   jpk_proces_script "$POST_SCRIPT" "Post" 1
   [ "$?" != "0" ] && return 1
 
+  /sbin/ldconfig
+
   return 0
 }
 

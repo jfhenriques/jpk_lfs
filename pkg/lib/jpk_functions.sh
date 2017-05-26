@@ -31,6 +31,13 @@ function jpk_get_build_user() {
   echo
 }
 
+function jpk_set_build_user() {
+  export JPK_BUILD_USER=$1
+}
+function jpk_set_pkg_maintainer() {
+  export JPK_PKG_MAINTAINER=$1
+}
+
 function jpk_print_pkg_info() {
   if [ -z "$JPK_PKG_NAME" ]; then
     echo "There is no package configured"
