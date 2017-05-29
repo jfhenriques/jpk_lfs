@@ -231,4 +231,22 @@ function jpk_pack_pkg() {
 }
 
 
+jpk_provides() {
+
+  if [ -z "$1" ] || [ -z "$2" ]; then
+    echo "Please use 'jpk_provides SRC_DIR PATTERN'"
+    return 1
+  fi
+
+  for jpk in $(find "$1" -name "*.jpk" 2>/dev/null ); do
+#    local cont=$(tar xOf "$jpk" jpk/index.gz | gzip -dc|rev|cut -d' ' -f1|rev|grep "$2") 2>/dev/null
+    local cont=$(tar xOf "$jpk" jpk/index.gz | gzip -dc|cut -c49-|grep "$2"|xargs -I {} echo "/{}") 2>/dev/null
+    if [ "$cont" != "" ]; then
+      echo "--> Found: $jpk"
+      echo "$cont"
+    fi
+  done 
+}
+
+
 

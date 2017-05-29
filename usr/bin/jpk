@@ -81,7 +81,7 @@ jpk_proces_script() {
   if [ ! -z "$1" ]; then
     if [ -x "$1" ]; then
       if [ -z "$3" ] || [ "$3" = "1" ]; then
-        echo "--> Running $2 execution scrpt"
+        echo "--> Running $2 execution script"
         local rval
         if [ "$VERBOSE" != "0" ]; then
           bash -c "$1"
