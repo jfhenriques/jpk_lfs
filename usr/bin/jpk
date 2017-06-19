@@ -192,7 +192,7 @@ jpk_sys_install_pkg() {
 
   local TAR_ARGS
   [ "$VERBOSE" != "0" ] && TAR_ARGS="-v"
-  ( cd / ; tar xOf "$PKG_RAW_LOCATION" "pkg.tar" | tar $TAR_ARGS -xf - )
+  ( cd / ; tar xOf "$PKG_RAW_LOCATION" "pkg.tar" | tar $TAR_ARGS --no-overwrite-dir -xf - )
 
   if [ "$?" != "0" ]; then
     echo -n "[ERROR] Something went wrong uncompressing package."

@@ -42,10 +42,10 @@ function jpk_print_pkg_info() {
   if [ -z "$JPK_PKG_NAME" ]; then
     echo "There is no package configured"
   else
-    echo "Configured package is '$JPK_PKG_NAME' version '$JPK_PKG_VER'"
-    echo "Source dir is '$JPK_PKG_SRC'"
-    echo "Destination dir is '$JPK_PKG_DST'"
-    echo "Build user is '$(jpk_get_build_user)'"
+    echo "Configured package '$JPK_PKG_NAME' version '$JPK_PKG_VER'"
+    echo "Source dir: $JPK_PKG_SRC"
+    echo "Destination dir: $JPK_PKG_DST"
+    echo "Build user: $(jpk_get_build_user)"
   fi
 }
 
@@ -78,8 +78,8 @@ function jpk_setup_pkg() {
   local DST_DIR_SCRIPTS_INFO="${DST_DIR_SCRIPTS}/jpk.info"
 
   echo "Setting up '$PKG_NAME' version '$PKG_VERSION'"
-  echo "Source dir is '$SRC_DIR'"
-  echo "Destination dir is '$DST_DIR'"
+  echo "Source dir: $SRC_DIR"
+  echo "Destination dir: $DST_DIR"
 
 
   if [ ! -z "$PKG_TAR" ]; then
@@ -142,6 +142,8 @@ EOF
   export JPK_PKG_NAME=$PKG_NAME
   export JPK_PKG_VER=$PKG_VERSION
   export JPK_PKG_DST=$DST_DIR
+
+  jpk_cd_pkg_src_dir
 }
 
 
@@ -152,7 +154,7 @@ function jpk_install_pkg() {
     return 1
   else
     echo "Installing in '$JPK_PKG_DST'"
-    make DESTDIR="${JPK_PKG_DST}/root" install $@
+    make DESTDIR="${JPK_PKG_DST}/root" install $@ && cd "$JPK_PKG_DST"
   fi
 }
 
@@ -222,7 +224,7 @@ function jpk_pack_pkg() {
   sed -i "s/Disk Size:.*/Disk Size: ${DISK_SIZE}/" "$JPK_INFO_FILE"
   sed -i "s/Checksum:.*/Checksum: ${PKG_CHECKSUM}/" "$JPK_INFO_FILE"
 
-  echo "Creating jpk file '$JPK_FILE'"
+  echo "Creating jpk file $JPK_FILE"
   
   ( cd "$TMP_DIR" ; tar --xz -cf "$JPK_FILE"  * )
  
@@ -249,4 +251,29 @@ jpk_provides() {
 }
 
 
+function jpk_set_pkg_dependencies() {
+  local JPK_INFO_FILE="${JPK_PKG_DST}/scripts/jpk.info"
+  if [ -z "$JPK_PKG_DST" ] || [ ! -d "$JPK_PKG_DST" ] || [ ! -f "$JPK_INFO_FILE" ]; then
+    echo "Error: pkg not setup/installed"
+    return 1
+  fi
 
+  local args="$@"
+
+  _jpk_append_if_not_exists "Dependencies:" "$JPK_INFO_FILE"
+  sed -i "s/Dependencies:.*/Dependencies: ${args}/" "$JPK_INFO_FILE"
+
+  cat "$JPK_INFO_FILE"
+
+}
+
+
+function jpk_find_pkg_dependencies() {
+  local JPK_ROOT_DIR="${JPK_PKG_DST}/root"
+  if [ -z "$JPK_PKG_DST" ] || [ ! -d "$JPK_ROOT_DIR" ]; then
+    echo "Error: pkg not setup/installed"
+    return 1
+  fi
+
+  for f in $(find_elf_dependencies "$JPK_ROOT_DIR"); do find /pkg/dst -name "$f"; done
+}
